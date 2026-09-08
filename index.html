@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MindTrack AI - 面向情绪支持、情绪识别与个性化建议的心理健康聊天助手原型。" />
+  <title>MindTrack AI | Mental Health Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="#top" class="brand" aria-label="MindTrack AI 首页">
+        <span class="brand-mark">M</span>
+        <span>MindTrack <b>AI</b></span>
+      </a>
+
+      <button class="menu-btn" id="menuBtn" aria-label="打开菜单" aria-expanded="false">☰</button>
+
+      <nav class="nav" id="nav">
+        <a href="#chat">AI 对话</a>
+        <a href="#features">功能</a>
+        <a href="#architecture">技术架构</a>
+        <a href="#safety">安全</a>
+        <a href="#about">项目介绍</a>
+      </nav>
+
+      <div class="auth-actions">
+        <button class="login-link" id="loginOpen">登录</button>
+        <button class="nav-cta nav-cta-btn" id="registerOpen">注册账号</button>
+        <div class="user-menu" id="userMenu" hidden>
+          <span id="userEmail"></span>
+          <button id="logoutBtn">退出</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-glow glow-one"></div>
+      <div class="hero-glow glow-two"></div>
+
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow"><span></span> AI Mental Wellness Companion</div>
+          <h1>理解你的情绪，<br><em>陪你整理此刻。</em></h1>
+          <p class="hero-lead">
+            MindTrack AI 是一个基于对话式 AI、情绪识别、上下文记忆与个性化建议设计的心理健康聊天助手原型，
+            帮助用户记录感受、整理压力，并获得温和、可执行的自我照护建议。
+          </p>
+
+          <div class="hero-actions">
+            <a href="#chat" class="btn primary">开始对话 <span>→</span></a>
+            <a href="#architecture" class="btn secondary">查看技术架构</a>
+          </div>
+
+          <div class="trust-row">
+            <div><strong>24/7</strong><span>随时可用</span></div>
+            <div><strong>REST API</strong><span>可扩展后端</span></div>
+            <div><strong>Privacy-first</strong><span>隐私优先设计</span></div>
+          </div>
+        </div>
+
+        <div class="hero-panel">
+          <div class="panel-top">
+            <div class="assistant-avatar">M</div>
+            <div>
+              <strong>MindTrack Assistant</strong>
+              <span><i></i> Online</span>
+            </div>
+            <button class="icon-btn" id="clearChat" title="清空对话">↻</button>
+          </div>
+
+          <div class="mini-chat">
+            <div class="bubble user">最近总觉得事情很多，脑子停不下来。</div>
+            <div class="bubble bot">听起来你这段时间承受了不少压力。我们可以先把最困扰你的事情拆成一小步，你愿意从今天最让你分心的一件事说起吗？</div>
+          </div>
+
+          <div class="emotion-card">
+            <div class="emotion-title">
+              <span>Emotion Insight</span>
+              <b>实时情绪趋势</b>
+            </div>
+            <div class="meter">
+              <div class="meter-item">
+                <span>平静</span>
+                <div><i style="width:74%"></i></div>
+                <b>74%</b>
+              </div>
+              <div class="meter-item">
+                <span>压力</span>
+                <div><i style="width:48%"></i></div>
+                <b>48%</b>
+              </div>
+              <div class="meter-item">
+                <span>积极</span>
+                <div><i style="width:61%"></i></div>
+                <b>61%</b>
+              </div>
+            </div>
+          </div>
+
+          <p class="panel-note">演示界面，不用于医疗诊断或替代专业心理健康服务。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="chat-section" id="chat">
+      <div class="container chat-layout">
+        <div class="section-copy">
+          <span class="section-kicker">CONVERSATIONAL AI</span>
+          <h2>现在，和 MindTrack 聊聊。</h2>
+          <p>前端会优先调用项目里的 REST API；若后端未启动，则自动切换到本地演示模式，因此直接打开网页也可以使用。</p>
+
+          <div class="quick-list">
+            <button class="prompt-chip">我今天有点焦虑</button>
+            <button class="prompt-chip">最近睡不好</button>
+            <button class="prompt-chip">帮我做一个 2 分钟放松练习</button>
+            <button class="prompt-chip">我想整理一下今天的情绪</button>
+          </div>
+
+          <div class="privacy-card">
+            <span>🔒</span>
+            <div>
+              <strong>隐私优先</strong>
+              <p>本地演示模式不会把你的聊天内容发送到第三方服务。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-app">
+          <div class="chat-head">
+            <div>
+              <span class="status-dot"></span>
+              <div>
+                <strong>MindTrack AI</strong>
+                <small id="modeLabel">请先登录</small>
+              </div>
+            </div>
+            <span class="pill" id="sentimentBadge">情绪：中性</span>
+          </div>
+
+          <div class="chat-auth-gate" id="chatAuthGate">
+            <div class="gate-icon">M</div>
+            <h3>登录后开始 AI 对话</h3>
+            <p>注册账号后，MindTrack 会通过服务器安全调用 OpenAI API。API Key 不会暴露在浏览器中。</p>
+            <div class="gate-actions">
+              <button class="btn primary" id="gateRegister">创建账号</button>
+              <button class="btn secondary" id="gateLogin">已有账号登录</button>
+            </div>
+          </div>
+          <div class="messages" id="messages" aria-live="polite">
+            <div class="message bot-msg">
+              <div class="avatar">M</div>
+              <div class="msg-body">
+                <div class="msg-bubble">
+                  你好，我是 MindTrack。你可以告诉我此刻的感受、最近的压力，或者只是在这里记录一下今天。<br><br>
+                  我可以陪你梳理，但不能替代医生、心理咨询师或紧急服务。
+                </div>
+                <time>现在</time>
+              </div>
+            </div>
+          </div>
+
+          <div class="typing" id="typing" hidden>
+            <div class="avatar">M</div>
+            <div class="dots"><i></i><i></i><i></i></div>
+          </div>
+
+          <form class="composer" id="chatForm">
+            <textarea id="chatInput" rows="1" maxlength="800" placeholder="输入你现在的感受..." aria-label="聊天输入"></textarea>
+            <button type="submit" class="send-btn" aria-label="发送">↑</button>
+          </form>
+          <div class="composer-note">MindTrack 可能出错。涉及医疗、用药或危机情况时，请联系合格专业人士或当地紧急服务。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="features-section" id="features">
+      <div class="container">
+        <div class="section-heading centered">
+          <span class="section-kicker">CORE FEATURES</span>
+          <h2>从“聊天”到“理解上下文”。</h2>
+          <p>对应项目经历中的核心能力：LLM 对话、情绪分析、个性化建议、上下文记忆、RAG 与多模态扩展。</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-icon">✦</div>
+            <h3>Conversational AI</h3>
+            <p>面向自然语言对话设计的交互层，可接入 LLM 服务并通过系统提示词保持支持性、非诊断性的回复风格。</p>
+            <span>LLM APIs</span>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">◒</div>
+            <h3>Sentiment Analysis</h3>
+            <p>分析用户表达中的积极、压力、低落与中性倾向，为界面状态和后续建议提供上下文信号。</p>
+            <span>NLP</span>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">⌁</div>
+            <h3>Contextual Memory</h3>
+            <p>保留会话中的近期上下文，让后续对话能理解用户刚刚提过的主题，而不是每次从零开始。</p>
+            <span>LangChain-ready</span>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">⌕</div>
+            <h3>RAG Knowledge Layer</h3>
+            <p>生产环境可连接审核过的心理教育资料、FAQ 和资源库，通过检索增强生成提供更有依据的响应。</p>
+            <span>Retrieval</span>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">◉</div>
+            <h3>Multimodal Signals</h3>
+            <p>架构预留文本、语音和行为信号输入层，可在获得明确授权后扩展多模态情绪识别。</p>
+            <span>Text · Voice · Behavior</span>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">↗</div>
+            <h3>Personalized Guidance</h3>
+            <p>根据当前情绪和聊天主题推荐呼吸练习、记录问题、休息提醒与下一步自我照护行动。</p>
+            <span>Recommendations</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="architecture-section" id="architecture">
+      <div class="container architecture-grid">
+        <div>
+          <span class="section-kicker">SYSTEM DESIGN</span>
+          <h2>可扩展为真正的 AI 产品架构。</h2>
+          <p class="architecture-lead">
+            这个可运行版本提供前端界面 + Python REST API。生产版本可以继续接入 LangChain、
+            向量检索、经过审核的知识库、语音输入和移动端应用。
+          </p>
+
+          <div class="stack-tags">
+            <span>Python</span><span>FastAPI</span><span>REST APIs</span><span>LangChain</span>
+            <span>LLM APIs</span><span>NLP</span><span>RAG</span><span>Mobile-ready</span>
+          </div>
+        </div>
+
+        <div class="architecture-card">
+          <div class="arch-row">
+            <span class="arch-num">01</span>
+            <div><strong>Web / Mobile Client</strong><small>聊天、情绪可视化、用户授权</small></div>
+          </div>
+          <div class="arch-line"></div>
+          <div class="arch-row">
+            <span class="arch-num">02</span>
+            <div><strong>FastAPI REST Layer</strong><small>会话、情绪分析、安全规则</small></div>
+          </div>
+          <div class="arch-line"></div>
+          <div class="arch-row">
+            <span class="arch-num">03</span>
+            <div><strong>LangChain Orchestration</strong><small>Memory · RAG · Prompt routing</small></div>
+          </div>
+          <div class="arch-line"></div>
+          <div class="arch-row">
+            <span class="arch-num">04</span>
+            <div><strong>LLM + Curated Knowledge</strong><small>模型服务 + 审核知识库</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="safety-section" id="safety">
+      <div class="container safety-card">
+        <div class="safety-icon">♡</div>
+        <div>
+          <span class="section-kicker">SAFETY BY DESIGN</span>
+          <h2>支持性工具，不做诊断。</h2>
+          <p>
+            MindTrack 的定位是日常情绪支持和自我记录。它不应诊断心理疾病、不应建议更改药物，也不应成为危机情况下的唯一支持渠道。
+            若系统识别到可能涉及即时危险或自伤风险的表达，会优先建议用户联系当地紧急服务、危机热线或可信任的人。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-section" id="about">
+      <div class="container about-grid">
+        <div>
+          <span class="section-kicker">PROJECT</span>
+          <h2>MindTrack AI</h2>
+          <p class="about-sub">AI Mental Health Chatbot System</p>
+        </div>
+        <div class="project-meta">
+          <div><span>Context</span><strong>UTS · Industry Workshop with Cognizant</strong></div>
+          <div><span>Role</span><strong>Project Lead</strong></div>
+          <div><span>Focus</span><strong>System Design · AI · REST API · Mobile Integration</strong></div>
+          <div><span>Period</span><strong>07/2025 – 11/2025</strong></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <a href="#top" class="brand footer-brand"><span class="brand-mark">M</span><span>MindTrack <b>AI</b></span></a>
+      <p>Prototype for education and portfolio demonstration. Not medical advice.</p>
+      <span>© 2026 MindTrack AI</span>
+    </div>
+  </footer>
+
+
+  <div class="auth-modal" id="authModal" hidden>
+    <div class="auth-backdrop" data-close-auth></div>
+    <div class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button class="auth-close" data-close-auth aria-label="关闭">×</button>
+      <div class="auth-logo">M</div>
+      <span class="section-kicker">MINDTRACK ACCOUNT</span>
+      <h2 id="authTitle">登录</h2>
+      <p id="authSubtitle">登录后即可使用联网 AI 对话。</p>
+      <form id="authForm">
+        <label>邮箱
+          <input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+        </label>
+        <label>密码
+          <input id="authPassword" type="password" minlength="8" autocomplete="current-password" required placeholder="至少 8 位">
+        </label>
+        <div class="auth-error" id="authError" hidden></div>
+        <button class="auth-submit" id="authSubmit" type="submit">登录</button>
+      </form>
+      <p class="auth-switch"><span id="authSwitchText">还没有账号？</span>
+        <button id="authSwitchBtn" type="button">立即注册</button>
+      </p>
+      <p class="auth-privacy">账号密码只发送到你的 MindTrack 服务器；OpenAI API Key 仅保存在服务器环境变量中。</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
