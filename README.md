@@ -2,7 +2,7 @@
 
 已实现：
 
-- 用户注册 / 登录 / 退出
+- 用户邮箱注册 / 六位验证码验证 / 登录 / 退出
 - SQLite 用户数据库
 - PBKDF2-SHA256 密码哈希
 - 30 天 Bearer Session
@@ -91,7 +91,6 @@ OPENAI_MODEL=gpt-5.6-luna
 生产环境建议再加入：
 
 - PostgreSQL
-- 邮箱验证
 - 忘记密码 / 重置密码
 - 登录限流 / CAPTCHA
 - HttpOnly Secure Cookie
@@ -115,3 +114,26 @@ response = client.responses.create(
 ```
 
 不要把 API Key 写到 `app.js` 或 `index.html`。
+
+## 邮箱注册配置
+
+在服务器环境变量中设置 `GMAIL_ADDRESS` 和 `GMAIL_APP_PASSWORD`（邮箱地址及 Gmail 应用密码）。可选设置 `GOOGLE_CLIENT_ID` 以启用 Google 登录。重启后端后配置才会生效。
+
+`.env.example` 仅提供配置模板。后端会自动加载项目目录中的 `.env`，已有的系统环境变量优先。复制模板为 `.env`，填入真实值，然后运行：
+
+```bash
+uvicorn server:app --reload
+```
+
+不要提交真实密钥。前端只公开 `index.html`、`app.js` 和 `styles.css`。
+
+注册成功会发送有效期 10 分钟的六位验证码，验证成功后自动登录。未验证账号不能登录。未收到邮件或验证码过期时，等待至少 60 秒后重新注册以获取新验证码；新验证码会替换旧验证码。每个验证码最多允许 5 次错误尝试。
+
+## 回归检查
+
+测试使用临时数据库和模拟邮件，不会发送真实邮件或修改现有数据库。
+
+```bash
+python -m unittest discover -s tests -v
+node tests/test_frontend.cjs
+```

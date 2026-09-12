@@ -9,6 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
+  <script
+    src="https://accounts.google.com/gsi/client"
+    async
+    defer>
+  </script>
 </head>
 <body>
   <header class="site-header">
@@ -322,6 +327,7 @@
       <span class="section-kicker">MINDTRACK ACCOUNT</span>
       <h2 id="authTitle">登录</h2>
       <p id="authSubtitle">登录后即可使用联网 AI 对话。</p>
+      <div class="auth-error" id="authError" role="alert" hidden></div>
       <form id="authForm">
         <label>邮箱
           <input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com">
@@ -329,9 +335,57 @@
         <label>密码
           <input id="authPassword" type="password" minlength="8" autocomplete="current-password" required placeholder="至少 8 位">
         </label>
-        <div class="auth-error" id="authError" hidden></div>
         <button class="auth-submit" id="authSubmit" type="submit">登录</button>
       </form>
+      <div class="auth-divider">
+          <span>或者</span>
+      </div>
+
+      <div id="googleLoginButton"></div>
+      <div
+        id="verificationPanel"
+        class="verification-panel"
+        hidden
+      >
+
+        <h3>
+            验证邮箱
+        </h3>
+
+        <p>
+            验证码已经发送到：
+
+            <strong
+                id="verificationEmail">
+            </strong>
+        </p>
+
+        <form
+            id="verificationForm"
+        >
+
+            <input
+                id="verificationCode"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                aria-label="六位邮箱验证码"
+                placeholder="000000"
+                required
+            >
+
+            <button
+                class="auth-submit"
+                type="submit"
+            >
+                验证邮箱
+            </button>
+
+        </form>
+
+      </div>
       <p class="auth-switch"><span id="authSwitchText">还没有账号？</span>
         <button id="authSwitchBtn" type="button">立即注册</button>
       </p>
