@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>MindTrack — 给心情一点空间</title>
-  <meta name="description" content="在 MindTrack 记录心情、整理思绪，按自己的节奏开始对话。">
+  <title>Morrow — 给心情一点空间</title>
+  <meta name="description" content="在 Morrow 记录心情、整理思绪，按自己的节奏开始对话。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
@@ -14,14 +14,14 @@
 <body>
   <section id="authPage" class="auth-page">
     <aside class="brand-panel">
-      <a class="brand" href="#/login"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>mindtrack<span class="brand-dot">.</span></a>
+      <a class="brand" href="#/login"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>Morrow<span class="brand-dot">.</span></a>
       <div class="brand-story"><p class="eyebrow gold">A QUIETER PLACE TO LAND</p><h1>给纷杂的心事，<br>留一点空间。</h1><p class="english-line">Make a little room<br>for what you’re carrying.</p><p class="brand-description">不必急着找到答案。<br>在这里，慢慢说，慢慢理清，找回自己的节奏。</p></div>
       <p class="brand-footer"><span aria-hidden="true">◇</span> 用心倾听，不作诊断。我们不能替代专业心理或医疗支持。</p>
     </aside>
     <main class="auth-main"><div class="auth-content">
       <p class="eyebrow" id="authEyebrow">WELCOME BACK</p>
       <h2 id="authTitle">很高兴，再见到你。</h2>
-      <p class="muted" id="authSubtitle">登录，继续你的 MindTrack 对话。</p>
+      <p class="muted" id="authSubtitle">登录，继续你的 Morrow 对话。</p>
       <div id="authError" class="notice error" role="alert" hidden></div>
       <form id="authForm" class="stack">
         <label id="nameLabel" hidden>怎么称呼你 <span class="optional">选填 · 保存在此浏览器</span><input id="authName" autocomplete="nickname" maxlength="40" placeholder="你的称呼"></label>
@@ -37,36 +37,47 @@
       </form>
       <div id="googleSection" hidden><div class="divider"><span>或者</span></div><div id="googleLoginButton"></div></div>
       <p id="authSwitch" class="auth-switch"><span id="authSwitchText">还没有账号？</span> <a id="authSwitchLink" href="#/register">创建账号</a></p>
-      <p class="auth-note">按自己的节奏，开始一次轻松的对话。<br>MindTrack 提供一般身心健康信息，不提供临床诊断。</p>
+      <p class="auth-note">按自己的节奏，开始一次轻松的对话。<br>Morrow 提供一般身心健康信息，不提供临床诊断。</p>
     </div></main>
+  </section>
+
+  <section id="companionPage" class="companion-page" hidden>
+    <header class="companion-top"><a class="brand" href="#/companions">Morrow<span class="brand-dot">.</span></a><span>YOUR AI COMPANION</span></header>
+    <main class="companion-main"><p class="eyebrow">不必一个人整理所有心事</p><h1>此刻，你想和谁聊聊？</h1><p class="muted">三种不同的陪伴方式，同样认真地听你说。<br>先选一个合拍的声音，之后随时可以换。</p>
+      <div id="companionChoices" class="companion-grid" role="group" aria-label="选择 AI 陪伴者"></div>
+      <p id="companionError" class="notice error" role="alert" hidden></p>
+      <div class="companion-actions"><button id="confirmCompanion" class="primary" disabled>选择一位陪伴者</button><button id="companionBack" class="text-button" hidden>返回设置</button></div>
+      <p class="companion-footnote">他们都是 AI 陪伴者，而非真人或心理治疗师。你的聊天记录不会因切换人物而删除。</p>
+    </main>
   </section>
 
   <div id="workspace" class="workspace" hidden>
     <button id="sidebarBackdrop" class="sidebar-backdrop" aria-label="关闭导航" hidden></button>
     <aside id="sidebar" class="sidebar">
-      <a class="brand" href="#/chat"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>mindtrack<span class="brand-dot">.</span></a>
+      <a class="brand" href="#/chat"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>Morrow<span class="brand-dot">.</span></a>
       <button id="newChat" class="new-chat"><span aria-hidden="true">＋</span> 开始新的对话 <span aria-hidden="true">↗</span></button>
       <p class="nav-label">YOUR SPACE</p>
       <a class="nav-link" id="chatNav" href="#/chat"><span aria-hidden="true">◌</span> 我的对话</a>
       <div class="history-area"><p class="nav-label">当前对话</p><a id="historyTitle" class="history-link" href="#/chat">一切从一句话开始</a><p class="small muted">你的聊天记录会随账号保存。</p></div>
-      <div class="sidebar-bottom"><p class="quiet-note">One thought at a time.<br><span>一步一步，也很好。</span></p><a class="account-link" id="accountNav" href="#/settings"><span class="avatar" id="sidebarAvatar">M</span><span class="account-copy"><strong id="sidebarName">我的账户</strong><small>Account & Settings</small></span><span aria-hidden="true">⚙</span></a></div>
+      <div class="sidebar-bottom"><p class="quiet-note" id="sidebarMotto">一步一步，也很好。</p><a class="account-link" id="accountNav" href="#/settings"><span class="avatar" id="sidebarAvatar">M</span><span class="account-copy"><strong id="sidebarName">我的账户</strong><small>Account & Settings</small></span><span aria-hidden="true">⚙</span></a></div>
     </aside>
     <main class="main-panel">
-      <header class="workspace-header"><div class="header-start"><button id="menuToggle" class="icon-button mobile-only" aria-label="打开导航" aria-expanded="false">☰</button><span id="pageLabel">你的对话空间</span></div><span class="private-label"><span class="status-dot"></span> 只属于你的节奏</span></header>
+      <header class="workspace-header"><div class="header-start"><button id="menuToggle" class="icon-button mobile-only" aria-label="打开导航" aria-expanded="false">☰</button><span id="activeCompanionIcon" aria-hidden="true" hidden>🌿</span><span id="pageLabel" class="sr-only">你的对话空间</span><div id="headerCompanions" class="header-companions" role="group" aria-label="切换 AI 陪伴者"><button id="switchXiaogui" type="button" aria-pressed="false"><span aria-hidden="true">🌿</span> 小轨<small>温和倾听</small></button><button id="switchNuanyang" type="button" aria-pressed="false"><span aria-hidden="true">☀</span> 暖阳<small>积极鼓励</small></button><button id="switchJingyue" type="button" aria-pressed="false"><span aria-hidden="true">☾</span> 静月<small>冷静理性</small></button></div></div><span class="private-label"><span class="status-dot"></span> 只属于你的节奏</span></header>
       <section id="chatPage" class="chat-page">
         <div id="chatScroll" class="chat-scroll">
-          <div id="welcome" class="welcome"><div class="welcome-symbol" aria-hidden="true">✳</div><p class="eyebrow">A MOMENT FOR YOU</p><h2>今天，心里装着些什么？</h2><p class="muted">一个念头，一点情绪，或只是想找人说说话。<br>从你想说的地方开始。</p><div class="prompt-grid"><button class="prompt-chip" data-prompt="最近有点累，想整理一下自己的情绪。"><span>☁</span><strong>整理一下心情</strong><small>给今天的感受起个名字</small></button><button class="prompt-chip" data-prompt="我想花几分钟放松一下，可以带我做一个呼吸练习吗？"><span>❋</span><strong>给自己一个暂停</strong><small>一起做个简短的放松练习</small></button><button class="prompt-chip" data-prompt="有件事情一直让我放不下，我想聊聊。"><span>↗</span><strong>聊聊困扰我的事</strong><small>把缠绕的思绪慢慢展开</small></button></div></div>
+          <div id="welcome" class="welcome"><div id="companionSymbol" class="welcome-symbol" aria-hidden="true">✳</div><p class="eyebrow">A MOMENT FOR YOU</p><h2 id="companionGreeting">今天，心里装着些什么？</h2><p id="companionMotto" class="companion-motto">慢慢说，我会认真听。</p><p id="companionIntro" class="muted">从你想说的地方开始。</p><div class="prompt-grid"><button class="prompt-chip" data-prompt="最近有点累，想整理一下自己的情绪。"><span>☁</span><strong>整理一下心情</strong><small>给今天的感受起个名字</small></button><button class="prompt-chip" data-prompt="我想花几分钟放松一下，可以带我做一个呼吸练习吗？"><span>❋</span><strong>给自己一个暂停</strong><small>一起做个简短的放松练习</small></button><button class="prompt-chip" data-prompt="有件事情一直让我放不下，我想聊聊。"><span>↗</span><strong>聊聊困扰我的事</strong><small>把缠绕的思绪慢慢展开</small></button></div></div>
           <div id="messages" class="messages" role="log" aria-label="聊天记录" aria-live="polite"></div>
-          <div id="typing" class="typing" role="status" hidden>MindTrack 正在思考<span>···</span></div>
+          <div id="typing" class="typing" role="status" hidden>Morrow 正在思考<span>···</span></div>
         </div>
-        <div class="composer-area"><div id="chatError" class="notice error" role="alert" hidden></div><form id="chatForm" class="composer"><label class="sr-only" for="chatInput">输入消息</label><textarea id="chatInput" rows="2" maxlength="2000" placeholder="慢慢来，我在听。" required></textarea><div class="composer-bottom"><span id="sentimentBadge">不必组织好语言再开始</span><button id="sendButton" class="send-button" type="submit" aria-label="发送消息">↑</button></div></form><p class="composer-note">MindTrack 可能出错，也不能替代专业支持。若有即时危险，请联系当地紧急服务。</p></div>
+        <div class="composer-area"><div id="chatError" class="notice error" role="alert" hidden></div><form id="chatForm" class="composer"><label class="sr-only" for="chatInput">输入消息</label><textarea id="chatInput" rows="2" maxlength="2000" placeholder="慢慢来，我在听。" required></textarea><div class="composer-bottom"><span id="sentimentBadge">不必组织好语言再开始</span><button id="sendButton" class="send-button" type="submit" aria-label="发送消息">↑</button></div></form><p class="composer-note">Morrow 可能出错，也不能替代专业支持。若有即时危险，请联系当地紧急服务。</p></div>
       </section>
       <section id="settingsPage" class="settings-page" hidden>
         <p class="eyebrow">MAKE YOURSELF AT HOME</p><h2>账户与设置</h2><p class="muted settings-intro">让这个空间，更适合你。</p>
         <section class="settings-card"><div class="section-heading"><h3>个人资料</h3><span>PROFILE</span></div><div class="profile-summary"><span class="avatar large" id="settingsAvatar">M</span><div><strong id="settingsName">我的账户</strong><p id="settingsEmail" class="muted"></p></div><span class="verified-badge">已验证</span></div><form id="profileForm"><label>显示称呼<input id="displayName" maxlength="40" placeholder="希望怎么称呼你"></label><div class="form-footer"><p class="small muted">仅保存在此浏览器，不会同步到其他设备。</p><button class="secondary" type="submit">保存称呼</button></div></form></section>
+        <section class="settings-card companion-setting"><div class="section-heading"><h3>我的 AI 陪伴者</h3><span>COMPANION</span></div><div class="setting-row"><span><strong id="settingsCompanion">小轨 · 温和倾听</strong><small id="settingsCompanionMotto">慢慢说，我会认真听。</small></span><button id="changeCompanion" class="secondary">更换人物 ↗</button></div><p class="small muted">更换会调整接下来的回答风格，原有聊天记录保留。</p></section>
         <section class="settings-card"><div class="section-heading"><h3>对话偏好</h3><span>PREFERENCES</span></div><label class="setting-row"><span><strong>按 Enter 发送</strong><small>关闭后使用发送按钮；Shift + Enter 始终换行。</small></span><input id="enterToSend" type="checkbox" role="switch" checked></label></section>
         <section class="settings-card"><div class="section-heading"><h3>数据与账户</h3><span>YOUR DATA</span></div><div class="setting-row"><span><strong>导出聊天记录</strong><small>下载服务器当前保存的最近 50 条消息。</small></span><button id="exportHistory" class="secondary">导出</button></div><div class="setting-row"><span><strong>清空聊天记录</strong><small>永久删除此账号的全部聊天记录。</small></span><button id="clearHistory" class="danger-button">清空</button></div><div class="setting-row"><span><strong>退出登录</strong><small>下次登录后，可以继续你的对话。</small></span><button id="logoutBtn" class="secondary">退出登录 ↗</button></div></section>
-        <p id="settingsStatus" role="status" class="notice" hidden></p><p class="settings-footnote">MindTrack · 留一点空间，给自己。</p>
+        <p id="settingsStatus" role="status" class="notice" hidden></p><p class="settings-footnote">Morrow · 留一点空间，给自己。</p>
       </section>
     </main>
   </div>

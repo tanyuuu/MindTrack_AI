@@ -1,4 +1,4 @@
-# MindTrack AI — OpenAI + 账号系统联网版
+# Morrow — OpenAI + 账号系统联网版
 
 已实现：
 
@@ -159,12 +159,12 @@ node tests/test_frontend.cjs
 
 ```dotenv
 RESEND_API_KEY=你的Resend密钥
-EMAIL_FROM=MindTrack AI <verify@你的已验证域名>
+EMAIL_FROM=Morrow <verify@你的已验证域名>
 ```
 
 不要把示例域名直接用于真实发信。普通 `@gmail.com` 地址以及 Render 分配的 `onrender.com` 域名不能作为你拥有并可配置 DNS 的发件域名。网站仍可使用 Render 域名，邮件使用你另行验证的域名。
 
-没有域名时可用 `EMAIL_FROM=MindTrack AI <onboarding@resend.dev>` 进行 Resend 测试，但只能发给注册 Resend 账号所用的邮箱；面向其他用户注册前必须验证自己的域名。API 接收成功不等于最终投递成功，未收到时检查垃圾邮件和 Resend 邮件日志。
+没有域名时可用 `EMAIL_FROM=Morrow <onboarding@resend.dev>` 进行 Resend 测试，但只能发给注册 Resend 账号所用的邮箱；面向其他用户注册前必须验证自己的域名。API 接收成功不等于最终投递成功，未收到时检查垃圾邮件和 Resend 邮件日志。
 
 保存配置后重启本地后端；线上需推送代码并在 Render 保存环境变量、重新部署。服务不会自动回退 SMTP，也不会向浏览器暴露验证码。发信超时或失败仍回滚本次注册变更。
 
@@ -191,3 +191,9 @@ SQLite 默认写入项目目录。Render 的普通文件系统是临时的，重
 - `/#/settings`：账户信息、此浏览器的显示称呼与 Enter 发送偏好、最近 50 条消息导出、清空记录和退出。
 
 聊天与设置需要登录。当前后端保留一条连续对话，“开始新的对话”会先确认删除已有记录，不提供多个独立会话。三个页面使用 hash 路由，无需修改 Render 路由规则。
+
+## AI 陪伴者
+
+首次登录（包括已有但尚未选择人物的账号）会进入 `/#/companions`。小轨温和倾听、暖阳积极鼓励、静月冷静梳理，各有独立主题、开场提示和座右铭。账户设置可以更换人物，聊天记录保留。人物选择通过 `/api/account/companion` 保存到账号，服务启动自动为 users 表补充 companion 字段；不需要删除旧数据库。部署后重启 Python 服务，使迁移与新接口生效。
+
+回答风格由后端根据账户人物选择加入系统提示，前端不能提交任意系统指令。所有人物共用纯文本格式要求和原有安全边界。模型回答仍可能不完全遵循格式，需要通过实际对话评估。Render 使用 SQLite 时仍需持久化磁盘，否则重启可能丢失账户及选择。
