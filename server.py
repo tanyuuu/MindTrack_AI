@@ -157,6 +157,21 @@ with db() as con:
     if "attempts" not in {r["name"] for r in con.execute("PRAGMA table_info(verification_codes)")}:
         con.execute("ALTER TABLE verification_codes ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0")
 
+def migrate_conversations():
+    with db() as con:
+        con.execute("CREATE TABLE IF NOT EXISTS conversations(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,companion TEXT NOT NULL,created_at INTEGER NOT NULL)")
+        if "conversation_id" not in {r["name"] for r in con.execute("PRAGMA table_info(messages)")}:
+            con.execute("ALTER TABLE messages ADD COLUMN conversation_id INTEGER")
+        if "active_conversation" not in {r["name"] for r in con.execute("PRAGMA table_info(users)")}:
+            con.execute("ALTER TABLE users ADD COLUMN active_conversation INTEGER")
+        for user in con.execute("SELECT id,companion FROM users WHERE active_conversation IS NULL").fetchall():
+            if con.execute("SELECT 1 FROM messages WHERE user_id=? AND conversation_id IS NULL", (user["id"],)).fetchone():
+                cid=con.execute("INSERT INTO conversations(user_id,companion,created_at) VALUES(?,?,?)", (user["id"],user["companion"] or "xiaogui",int(time.time()))).lastrowid
+                con.execute("UPDATE messages SET conversation_id=? WHERE user_id=? AND conversation_id IS NULL", (cid,user["id"]))
+                con.execute("UPDATE users SET active_conversation=? WHERE id=?", (cid,user["id"]))
+        con.execute("CREATE INDEX IF NOT EXISTS messages_conversation ON messages(user_id,conversation_id,id)")
+migrate_conversations()
+
 class EmailDeliveryError(RuntimeError):
     """Contains only a safe, application-authored message for the user."""
 
@@ -320,16 +335,16 @@ def bearer(authorization:Optional[str]=Header(None)):
 def current_user(token:str=Depends(bearer)):
     th=hashlib.sha256(token.encode()).hexdigest()
     with db() as con:
-        row=con.execute("SELECT u.id,u.email,u.companion FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.verified=1",(th,int(time.time()))).fetchone()
+        row=con.execute("SELECT u.id,u.email,u.companion,u.active_conversation FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.verified=1",(th,int(time.time()))).fetchone()
     if not row:raise HTTPException(401,"登录已过期，请重新登录")
-    return {"id":row["id"],"email":row["email"],"token_hash":th,"companion":row["companion"]}
+    return {"id":row["id"],"email":row["email"],"token_hash":th,"companion":row["companion"],"conversation_id":row["active_conversation"]}
 def sentiment(text):
     neg=sum(w in text for w in NEGATIVE_TERMS);pos=sum(w in text for w in POSITIVE_TERMS)
     return "压力/低落" if neg>pos else ("积极" if pos>neg else "中性")
-def save(uid,role,content):
-    with db() as con:con.execute("INSERT INTO messages(user_id,role,content,created_at) VALUES(?,?,?,?)",(uid,role,content,int(time.time())))
-def recent(uid,limit=12):
-    with db() as con:rows=con.execute("SELECT role,content FROM messages WHERE user_id=? ORDER BY id DESC LIMIT ?",(uid,limit)).fetchall()
+def save(uid,role,content,cid):
+    with db() as con:con.execute("INSERT INTO messages(user_id,role,content,created_at,conversation_id) VALUES(?,?,?,?,?)",(uid,role,content,int(time.time()),cid))
+def recent(uid,limit=12,cid=None):
+    with db() as con:rows=con.execute("SELECT role,content FROM messages WHERE user_id=? AND conversation_id=? ORDER BY id DESC LIMIT ?",(uid,cid,limit)).fetchall()
     return [{"role":r["role"],"content":r["content"]} for r in reversed(rows)]
 
 @app.get("/api/health")
@@ -558,7 +573,7 @@ def login(req:AuthRequest):
 
 @app.get("/api/auth/me")
 def me(user=Depends(current_user)):
-    return {"id":user["id"],"email":user["email"],"companion":user["companion"]}
+    return {"id":user["id"],"email":user["email"],"companion":user["companion"],"conversation_id":user["conversation_id"]}
 
 class CompanionRequest(BaseModel):
     companion: Literal["xiaogui", "nuanyang", "jingyue"]
@@ -566,8 +581,38 @@ class CompanionRequest(BaseModel):
 @app.put("/api/account/companion")
 def choose_companion(req: CompanionRequest, user=Depends(current_user)):
     with db() as con:
-        con.execute("UPDATE users SET companion=? WHERE id=?", (req.companion, user["id"]))
-    return {"companion": req.companion}
+        con.execute("BEGIN IMMEDIATE")
+        # Keep an explicitly opened older conversation when selecting the same role.
+        active=con.execute("SELECT c.id FROM users u JOIN conversations c ON c.id=u.active_conversation WHERE u.id=? AND c.user_id=u.id AND c.companion=?",(user["id"],req.companion)).fetchone()
+        previous=active or con.execute("SELECT id FROM conversations WHERE user_id=? AND companion=? ORDER BY id DESC LIMIT 1",(user["id"],req.companion)).fetchone()
+        cid=previous["id"] if previous else None
+        con.execute("UPDATE users SET companion=?,active_conversation=? WHERE id=?", (req.companion,cid,user["id"]))
+    return {"companion": req.companion,"conversation_id":cid}
+
+@app.get("/api/conversations")
+def conversations(user=Depends(current_user)):
+    with db() as con:
+        rows=con.execute("SELECT c.id,c.companion,COALESCE((SELECT substr(content,1,40) FROM messages m WHERE m.conversation_id=c.id AND m.user_id=c.user_id AND role='user' ORDER BY m.id LIMIT 1),'新的对话') AS title FROM conversations c WHERE c.user_id=? AND EXISTS(SELECT 1 FROM messages m WHERE m.conversation_id=c.id AND m.user_id=c.user_id) ORDER BY c.id DESC", (user["id"],)).fetchall()
+    return {"conversations":[dict(row) for row in rows]}
+
+@app.put("/api/conversations/{cid}/activate")
+def activate_conversation(cid:int,user=Depends(current_user)):
+    with db() as con:
+        row=con.execute("SELECT companion FROM conversations WHERE id=? AND user_id=?", (cid,user["id"])).fetchone()
+        if not row:raise HTTPException(404,"对话不存在")
+        con.execute("UPDATE users SET active_conversation=?,companion=? WHERE id=?", (cid,row["companion"],user["id"]))
+    return {"conversation_id":cid,"companion":row["companion"]}
+
+@app.delete("/api/conversations/{cid}")
+def delete_conversation(cid:int,user=Depends(current_user)):
+    with db() as con:
+        con.execute("BEGIN IMMEDIATE")
+        if not con.execute("SELECT 1 FROM conversations WHERE id=? AND user_id=?",(cid,user["id"])).fetchone():
+            raise HTTPException(404,"对话不存在")
+        con.execute("DELETE FROM messages WHERE conversation_id=? AND user_id=?",(cid,user["id"]))
+        con.execute("DELETE FROM conversations WHERE id=? AND user_id=?",(cid,user["id"]))
+        con.execute("UPDATE users SET active_conversation=NULL WHERE id=? AND active_conversation=?",(user["id"],cid))
+    return {"ok":True}
 
 @app.post("/api/auth/logout")
 def logout(user=Depends(current_user)):
@@ -575,7 +620,7 @@ def logout(user=Depends(current_user)):
     return {"ok":True}
 
 @app.get("/api/history")
-def history(user=Depends(current_user)):return {"messages":recent(user["id"],50)}
+def history(user=Depends(current_user)):return {"messages":recent(user["id"],50,user["conversation_id"])}
 
 @app.delete("/api/history")
 def clear_history(user=Depends(current_user)):
@@ -584,14 +629,19 @@ def clear_history(user=Depends(current_user)):
 
 @app.post("/api/chat")
 def chat(req:ChatRequest,user=Depends(current_user)):
-    text=req.message.strip();save(user["id"],"user",text)
+    cid=user["conversation_id"]
+    if cid is None:
+        with db() as con:
+            cid=con.execute("INSERT INTO conversations(user_id,companion,created_at) VALUES(?,?,?)",(user["id"],user["companion"] or "xiaogui",int(time.time()))).lastrowid
+            con.execute("UPDATE users SET active_conversation=? WHERE id=?",(cid,user["id"]))
+    text=req.message.strip();save(user["id"],"user",text,cid)
     lower=text.lower()
     if any(t.lower() in lower for t in CRISIS_TERMS):
         reply="我很在意你刚刚提到的内容。如果你现在可能会伤害自己或处于即时危险中，请立即联系你所在地区的紧急服务或危机热线，并尽快去到一个可信任的人身边。不要独自面对这一刻。你可以告诉我：你现在是否处在立即危险中？"
-        save(user["id"],"assistant",reply)
-        return {"reply":reply,"sentiment":sentiment(text)}
+        save(user["id"],"assistant",reply,cid)
+        return {"reply":reply,"sentiment":sentiment(text),"conversation_id":cid}
     if not OPENAI_API_KEY:raise HTTPException(503,"服务器还没有配置 OPENAI_API_KEY。请在服务器环境变量中设置后重启服务。")
-    items=[{"role":"developer","content":SYSTEM_PROMPT + "\n" + COMPANIONS.get(user.get("companion"), COMPANIONS["xiaogui"])}]+recent(user["id"],12)
+    items=[{"role":"developer","content":SYSTEM_PROMPT + "\n" + COMPANIONS.get(user.get("companion"), COMPANIONS["xiaogui"])}]+recent(user["id"],12,cid)
     try:
         client=OpenAI(api_key=OPENAI_API_KEY)
         response=client.responses.create(model=OPENAI_MODEL,input=items,max_output_tokens=500)
@@ -600,8 +650,8 @@ def chat(req:ChatRequest,user=Depends(current_user)):
     except Exception as exc:
         logger.warning("OpenAI API failed (%s)", type(exc).__name__)
         raise HTTPException(502,"OpenAI 服务暂时不可用，请稍后再试")
-    save(user["id"],"assistant",reply)
-    return {"reply":reply,"sentiment":sentiment(text)}
+    save(user["id"],"assistant",reply,cid)
+    return {"reply":reply,"sentiment":sentiment(text),"conversation_id":cid}
 
 @app.get("/", include_in_schema=False)
 def index():

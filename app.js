@@ -8,6 +8,57 @@ const companions = {
 };
 let selectedCompanion = null, companionSaving = false;
 const headerCompanions = {xiaogui:'switchXiaogui', nuanyang:'switchNuanyang', jingyue:'switchJingyue'};
+async function refreshConversation(data) {
+  state.user.conversation_id=data.conversation_id;
+  state.historyReady=false;
+  $('messages').replaceChildren();$('welcome').hidden=false;$('chatInput').value='';
+  $('sentimentBadge').textContent='不必组织好语言再开始';
+  await loadHistory();
+  await loadConversations();
+}
+async function loadConversations() {
+  const version=state.sessionVersion;
+  try {
+    const data=await request('/api/conversations');if(version!==state.sessionVersion)return;
+    $('conversationList').replaceChildren();
+    (data.conversations||[]).forEach(item=>{
+      const button=document.createElement('button');button.className='conversation-item';
+      button.textContent=`${companions[item.companion]?.name || '对话'} · ${item.title}`;
+      button.setAttribute('aria-current',String(item.id===state.user.conversation_id));
+      button.onclick=async()=>{
+        if(state.busy||companionSaving||historyLoading)return;
+        companionSaving=true;updateCompanionButtons();
+        try{const result=await request(`/api/conversations/${item.id}/activate`,{method:'PUT'});if(version!==state.sessionVersion)return;state.user.companion=result.companion;await refreshConversation(result);location.hash='#/chat';route();}
+        catch(error){handlePrivateError(error,'chatError');}
+        finally{companionSaving=false;updateCompanionButtons();}
+      };
+      const row=document.createElement('div');row.className='conversation-row';
+      const remove=document.createElement('button');remove.className='conversation-delete';remove.textContent='×';
+      remove.setAttribute('aria-label',`删除对话：${item.title}`);remove.title='删除对话';
+      remove.onclick=()=>confirmDeleteConversation(item);
+      row.append(button);row.append(remove);$('conversationList').append(row);
+    });
+  }catch(error){if(version===state.sessionVersion)notice('chatError',error.message,true);}
+}
+function confirmDeleteConversation(item) {
+  if(state.busy||companionSaving||historyLoading)return;
+  const version=state.sessionVersion;
+  $('confirmTitle').textContent='删除这段对话？';
+  $('confirmDescription').textContent=`将永久删除「${item.title}」及其中的消息，其他对话不会受影响。`;
+  $('confirmAction').textContent='确认删除';
+  $('confirmDialog').returnValue='';$('confirmDialog').showModal();
+  $('confirmDialog').onclose=async()=>{
+    if($('confirmDialog').returnValue!=='confirm'||version!==state.sessionVersion)return;
+    companionSaving=true;updateCompanionButtons();
+    try{
+      await request(`/api/conversations/${item.id}`,{method:'DELETE'});
+      if(version!==state.sessionVersion)return;
+      if(state.user.conversation_id===item.id)await refreshConversation({conversation_id:null});
+      else await loadConversations();
+    }catch(error){if(version===state.sessionVersion)handlePrivateError(error,'chatError');}
+    finally{companionSaving=false;updateCompanionButtons();$('sendButton').disabled=state.busy||historyLoading;}
+  };
+}
 function updateCompanionButtons() {
   Object.entries(headerCompanions).forEach(([id, buttonId]) => {
     $(buttonId).setAttribute('aria-pressed', String(state.user?.companion === id));
@@ -16,7 +67,7 @@ function updateCompanionButtons() {
 }
 Object.entries(headerCompanions).forEach(([id, buttonId]) => {
   $(buttonId).onclick = async () => {
-    if (!state.user || state.busy || companionSaving || state.user.companion === id) return;
+    if (!state.user || state.busy || historyLoading || companionSaving || state.user.companion === id) return;
     const version = state.sessionVersion;
     companionSaving = true; updateCompanionButtons(); $('sendButton').disabled = true;
     const target = location.hash === '#/settings' ? 'settingsStatus' : 'chatError';
@@ -25,6 +76,7 @@ Object.entries(headerCompanions).forEach(([id, buttonId]) => {
       const data = await request('/api/account/companion', {method:'PUT', body:JSON.stringify({companion:id})});
       if (version !== state.sessionVersion) return;
       state.user.companion = data.companion;
+      await refreshConversation(data);
       applyCompanion();
       $('pageLabel').textContent = `${companions[data.companion].name} · ${companions[data.companion].tag}`;
     } catch (error) {if (version === state.sessionVersion) handlePrivateError(error, target);}
@@ -66,7 +118,7 @@ function applyCompanion() {
 $('confirmCompanion').onclick=async()=>{
   if(!selectedCompanion||companionSaving)return;
   const version=state.sessionVersion;companionSaving=true;$('confirmCompanion').disabled=true;
-  try{const data=await request('/api/account/companion',{method:'PUT',body:JSON.stringify({companion:selectedCompanion})});if(version!==state.sessionVersion)return;state.user.companion=data.companion;location.hash='#/chat';route();}
+  try{const data=await request('/api/account/companion',{method:'PUT',body:JSON.stringify({companion:selectedCompanion})});if(version!==state.sessionVersion)return;state.user.companion=data.companion;await refreshConversation(data);location.hash='#/chat';route();}
   catch(error){if(version===state.sessionVersion)handlePrivateError(error,'companionError');}
   finally{companionSaving=false;$('confirmCompanion').disabled=false;}
 };
@@ -186,7 +238,7 @@ async function loadHistory() {
     $('messages').replaceChildren(); $('welcome').hidden = !!data.messages?.length;
     (data.messages || []).forEach(message => addMessage(message.content, message.role));
     $('historyTitle').textContent = data.messages?.find(message => message.role === 'user')?.content.slice(0,40) || '一切从一句话开始';
-    state.historyReady = true; notice('chatError', ''); scrollToEnd();
+    state.historyReady = true; notice('chatError', ''); scrollToEnd();loadConversations();
   } catch(error) {if(version === state.sessionVersion) handlePrivateError(error, 'chatError');}
   finally {historyLoading = false; $('sendButton').disabled = state.busy || companionSaving;}
 }
@@ -203,8 +255,8 @@ $('chatForm').addEventListener('submit', async event => {
   const row = addMessage(text,'user'); $('chatInput').value=''; $('chatInput').style.height='auto'; $('typing').hidden=false;notice('chatError','');scrollToEnd();
   try {
     const data=await request('/api/chat',{method:'POST',body:JSON.stringify({message:text})}); if(version!==state.sessionVersion)return;
-    addMessage(data.reply,'assistant');$('sentimentBadge').textContent=`此刻的情绪 · ${data.sentiment || '中性'}`;
-    $('historyTitle').textContent=text.slice(0,40); state.historyReady=true;scrollToEnd();
+    state.user.conversation_id=data.conversation_id;addMessage(data.reply,'assistant');$('sentimentBadge').textContent=`此刻的情绪 · ${data.sentiment || '中性'}`;
+    $('historyTitle').textContent=text.slice(0,40); state.historyReady=true;scrollToEnd();loadConversations();
   } catch(error) {if(version===state.sessionVersion){row.remove();$('chatInput').value=text;handlePrivateError(error,'chatError');}}
   finally {state.busy=false;updateCompanionButtons();$('typing').hidden=true;$('sendButton').disabled=false;$('newChat').disabled=false;$('clearHistory').disabled=false;}
 });
@@ -215,16 +267,23 @@ $('profileForm').addEventListener('submit',event=>{event.preventDefault();try{sa
 $('enterToSend').onchange=()=>{try{savePreferences({enterToSend:$('enterToSend').checked});notice('settingsStatus','发送偏好已保存到此浏览器。');}catch{notice('settingsStatus','浏览器无法保存设置。',true);}};
 function confirmClear(newChat) {
   if(state.busy)return;
+  $('confirmDescription').textContent='这会永久删除服务器上的全部聊天记录，无法恢复。';$('confirmAction').textContent='确认清空';
   $('confirmTitle').textContent=newChat?'清空记录，开始新的对话？':'清空聊天记录？';
   $('confirmDialog').returnValue='';$('confirmDialog').showModal();
   $('confirmDialog').onclose=async()=>{
     if($('confirmDialog').returnValue!=='confirm')return;
     const target=newChat?'chatError':'settingsStatus';
-    try{await request('/api/history',{method:'DELETE'});$('messages').replaceChildren();$('welcome').hidden=false;$('historyTitle').textContent='一切从一句话开始';$('sentimentBadge').textContent='不必组织好语言再开始';state.historyReady=true;notice(target,'聊天记录已清空。');if(newChat){location.hash='#/chat';$('chatInput').value='';$('chatInput').focus();}}
+    try{await request('/api/history',{method:'DELETE'});$('messages').replaceChildren();$('welcome').hidden=false;$('historyTitle').textContent='一切从一句话开始';$('sentimentBadge').textContent='不必组织好语言再开始';state.historyReady=true;notice(target,'聊天记录已清空。');loadConversations();if(newChat){location.hash='#/chat';$('chatInput').value='';$('chatInput').focus();}}
     catch(error){handlePrivateError(error,target);}
   };
 }
-$('clearHistory').onclick=()=>confirmClear(false);$('newChat').onclick=()=>confirmClear(true);
+$('clearHistory').onclick=()=>confirmClear(false);$('newChat').onclick=async()=>{
+  if(state.busy||companionSaving||historyLoading)return;
+  companionSaving=true;updateCompanionButtons();
+  try{const data=await request('/api/account/companion',{method:'PUT',body:JSON.stringify({companion:state.user.companion})});await refreshConversation(data);location.hash='#/chat';route();}
+  catch(error){handlePrivateError(error,'chatError');}
+  finally{companionSaving=false;updateCompanionButtons();}
+};
 $('exportHistory').onclick=async()=>{const button=$('exportHistory');button.disabled=true;try{const data=await request('/api/history');const blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),messages:data.messages},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='morrow-conversation.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('settingsStatus','聊天记录已导出。');}catch(error){handlePrivateError(error,'settingsStatus');}finally{button.disabled=false;}};
 $('logoutBtn').onclick=async()=>{if(state.busy){notice('settingsStatus','请等待当前回复完成后退出。',true);return;}$('logoutBtn').disabled=true;try{await request('/api/auth/logout',{method:'POST'});resetSession();}catch(error){handlePrivateError(error,'settingsStatus');}finally{$('logoutBtn').disabled=false;}};
 $('menuToggle').onclick=()=>{const open=!$('sidebar').classList.contains('open');$('sidebar').classList.toggle('open',open);$('sidebarBackdrop').hidden=!open;$('menuToggle').setAttribute('aria-expanded',String(open));};

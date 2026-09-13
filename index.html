@@ -55,10 +55,10 @@
     <button id="sidebarBackdrop" class="sidebar-backdrop" aria-label="关闭导航" hidden></button>
     <aside id="sidebar" class="sidebar">
       <a class="brand" href="#/chat"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>Morrow<span class="brand-dot">.</span></a>
-      <button id="newChat" class="new-chat"><span aria-hidden="true">＋</span> 开始新的对话 <span aria-hidden="true">↗</span></button>
+      <button id="newChat" class="new-chat"><span aria-hidden="true">＋</span> 继续当前对话 <span aria-hidden="true">↗</span></button>
       <p class="nav-label">YOUR SPACE</p>
       <a class="nav-link" id="chatNav" href="#/chat"><span aria-hidden="true">◌</span> 我的对话</a>
-      <div class="history-area"><p class="nav-label">当前对话</p><a id="historyTitle" class="history-link" href="#/chat">一切从一句话开始</a><p class="small muted">你的聊天记录会随账号保存。</p></div>
+      <div class="history-area"><p class="nav-label">当前对话</p><a id="historyTitle" class="history-link" href="#/chat">一切从一句话开始</a><div id="conversationList" aria-label="历史对话"></div><p class="small muted">发送第一条消息后，对话会保存在这里。</p></div>
       <div class="sidebar-bottom"><p class="quiet-note" id="sidebarMotto">一步一步，也很好。</p><a class="account-link" id="accountNav" href="#/settings"><span class="avatar" id="sidebarAvatar">M</span><span class="account-copy"><strong id="sidebarName">我的账户</strong><small>Account & Settings</small></span><span aria-hidden="true">⚙</span></a></div>
     </aside>
     <main class="main-panel">
@@ -74,13 +74,13 @@
       <section id="settingsPage" class="settings-page" hidden>
         <p class="eyebrow">MAKE YOURSELF AT HOME</p><h2>账户与设置</h2><p class="muted settings-intro">让这个空间，更适合你。</p>
         <section class="settings-card"><div class="section-heading"><h3>个人资料</h3><span>PROFILE</span></div><div class="profile-summary"><span class="avatar large" id="settingsAvatar">M</span><div><strong id="settingsName">我的账户</strong><p id="settingsEmail" class="muted"></p></div><span class="verified-badge">已验证</span></div><form id="profileForm"><label>显示称呼<input id="displayName" maxlength="40" placeholder="希望怎么称呼你"></label><div class="form-footer"><p class="small muted">仅保存在此浏览器，不会同步到其他设备。</p><button class="secondary" type="submit">保存称呼</button></div></form></section>
-        <section class="settings-card companion-setting"><div class="section-heading"><h3>我的 AI 陪伴者</h3><span>COMPANION</span></div><div class="setting-row"><span><strong id="settingsCompanion">小轨 · 温和倾听</strong><small id="settingsCompanionMotto">慢慢说，我会认真听。</small></span><button id="changeCompanion" class="secondary">更换人物 ↗</button></div><p class="small muted">更换会调整接下来的回答风格，原有聊天记录保留。</p></section>
+        <section class="settings-card companion-setting"><div class="section-heading"><h3>我的 AI 陪伴者</h3><span>COMPANION</span></div><div class="setting-row"><span><strong id="settingsCompanion">小轨 · 温和倾听</strong><small id="settingsCompanionMotto">慢慢说，我会认真听。</small></span><button id="changeCompanion" class="secondary">更换人物 ↗</button></div><p class="small muted">切换人物会恢复该人物上次的对话，不会重复新建。</p></section>
         <section class="settings-card"><div class="section-heading"><h3>对话偏好</h3><span>PREFERENCES</span></div><label class="setting-row"><span><strong>按 Enter 发送</strong><small>关闭后使用发送按钮；Shift + Enter 始终换行。</small></span><input id="enterToSend" type="checkbox" role="switch" checked></label></section>
         <section class="settings-card"><div class="section-heading"><h3>数据与账户</h3><span>YOUR DATA</span></div><div class="setting-row"><span><strong>导出聊天记录</strong><small>下载服务器当前保存的最近 50 条消息。</small></span><button id="exportHistory" class="secondary">导出</button></div><div class="setting-row"><span><strong>清空聊天记录</strong><small>永久删除此账号的全部聊天记录。</small></span><button id="clearHistory" class="danger-button">清空</button></div><div class="setting-row"><span><strong>退出登录</strong><small>下次登录后，可以继续你的对话。</small></span><button id="logoutBtn" class="secondary">退出登录 ↗</button></div></section>
         <p id="settingsStatus" role="status" class="notice" hidden></p><p class="settings-footnote">Morrow · 留一点空间，给自己。</p>
       </section>
     </main>
   </div>
-  <dialog id="confirmDialog"><form method="dialog"><p class="eyebrow">YOUR CONVERSATION</p><h3 id="confirmTitle">清空聊天记录？</h3><p id="confirmDescription" class="muted">这会永久删除服务器上的全部聊天记录，无法恢复。</p><div class="dialog-actions"><button class="secondary" value="cancel">取消</button><button class="primary" value="confirm">确认清空</button></div></form></dialog>
+  <dialog id="confirmDialog"><form method="dialog"><p class="eyebrow">YOUR CONVERSATION</p><h3 id="confirmTitle">清空聊天记录？</h3><p id="confirmDescription" class="muted">这会永久删除服务器上的全部聊天记录，无法恢复。</p><div class="dialog-actions"><button class="secondary" value="cancel">取消</button><button id="confirmAction" class="primary" value="confirm">确认清空</button></div></form></dialog>
 </body>
 </html>
