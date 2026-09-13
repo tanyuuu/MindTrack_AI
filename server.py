@@ -7,12 +7,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr, Field
 from openai import OpenAI
 
-import smtplib
+import requests
 import logging
 from dotenv import load_dotenv
 
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -20,15 +18,17 @@ from google.auth.transport import requests as google_requests
 BASE_DIR=Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env", override=False)
 logger = logging.getLogger(__name__)
-DB_PATH=BASE_DIR/"mindtrack.db"
+DB_PATH=Path(os.getenv("DB_PATH", "mindtrack.db").strip() or "mindtrack.db").expanduser()
+if not DB_PATH.is_absolute():
+    DB_PATH=BASE_DIR/DB_PATH
 GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", "").strip()
-GMAIL_ADDRESS=os.getenv("GMAIL_ADDRESS", "").strip()
-GMAIL_APP_PASSWORD=os.getenv("GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
+RESEND_API_KEY=os.getenv("RESEND_API_KEY", "").strip()
+EMAIL_FROM=os.getenv("EMAIL_FROM", "").strip()
 OPENAI_API_KEY=os.getenv("OPENAI_API_KEY","").strip()
 OPENAI_MODEL=os.getenv("OPENAI_MODEL","gpt-5.6-luna").strip()
 
 app=FastAPI(title="MindTrack AI",version="2.0.0")
-app.add_middleware(CORSMiddleware,allow_origins=os.getenv("CORS_ORIGINS","*").split(","),allow_credentials=False,allow_methods=["*"],allow_headers=["*"])
+app.add_middleware(CORSMiddleware,allow_origins=[origin.strip() for origin in os.getenv("CORS_ORIGINS", "").split(",") if origin.strip()],allow_credentials=False,allow_methods=["*"],allow_headers=["*"])
 
 SYSTEM_PROMPT="""You are MindTrack AI, a supportive mental wellness conversation assistant.
 Reply in the same language as the user. Be warm, concise, practical, and non-judgmental.
@@ -109,35 +109,17 @@ with db() as con:
     if "attempts" not in {r["name"] for r in con.execute("PRAGMA table_info(verification_codes)")}:
         con.execute("ALTER TABLE verification_codes ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0")
 
-# Gmail verification email
+class EmailDeliveryError(RuntimeError):
+    """Contains only a safe, application-authored message for the user."""
+
+
 def generate_verification_code():
     return f"{secrets.randbelow(1000000):06d}"
 
-def send_verification_email(
-    to_email: str,
-    code: str
-):
 
-    if not GMAIL_ADDRESS:
-        raise RuntimeError(
-            "GMAIL_ADDRESS 未配置"
-        )
-
-    if not GMAIL_APP_PASSWORD:
-        raise RuntimeError(
-            "GMAIL_APP_PASSWORD 未配置"
-        )
-
-    message = MIMEMultipart(
-        "alternative"
-    )
-
-    message["Subject"] = (
-        "MindTrack AI 验证码"
-    )
-
-    message["From"] = GMAIL_ADDRESS
-    message["To"] = to_email
+def send_verification_email(to_email: str, code: str):
+    if not RESEND_API_KEY or not EMAIL_FROM:
+        raise EmailDeliveryError("服务器未配置邮件服务：请设置 RESEND_API_KEY 和 EMAIL_FROM，然后重启或重新部署")
 
     html = f"""
     <html>
@@ -187,29 +169,50 @@ def send_verification_email(
     </html>
     """
 
-    message.attach(
-        MIMEText(
-            html,
-            "html"
+    try:
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "MindTrack/2.0",
+            },
+            json={
+                "from": EMAIL_FROM,
+                "to": [to_email],
+                "subject": "MindTrack AI 验证码",
+                "html": html,
+                "text": f"你的 MindTrack AI 验证码是：{code}。10 分钟内有效。",
+            },
+            timeout=(5, 15),
+            allow_redirects=False,
         )
-    )
+    except requests.RequestException:
+        raise EmailDeliveryError("无法连接邮件 API 或请求超时，请稍后重试") from None
 
-    with smtplib.SMTP_SSL(
-        "smtp.gmail.com",
-        465,
-        timeout=15
-    ) as smtp:
-
-        smtp.login(
-            GMAIL_ADDRESS,
-            GMAIL_APP_PASSWORD
-        )
-
-        smtp.sendmail(
-            GMAIL_ADDRESS,
-            to_email,
-            message.as_string()
-        )
+    # Never expose provider response bodies, credentials, or recipient details.
+    if not 200 <= response.status_code < 300:
+        logger.warning("Resend email rejected (HTTP %s)", response.status_code)
+        if response.status_code == 401:
+            detail = "邮件服务认证失败，请检查 RESEND_API_KEY 后重新部署"
+        elif response.status_code == 403 and "onboarding@resend.dev" in EMAIL_FROM.lower():
+            detail = "Resend 拒绝发送：当前使用测试发件地址，只能发给注册 Resend 账号时的邮箱；如需发给其他人，请验证自己的发件域名。也请确认 API Key 有发信权限"
+        elif response.status_code in (400, 403, 422):
+            detail = "邮件服务拒绝发送，请检查 API Key 权限、EMAIL_FROM 的域名验证和测试收件人限制"
+        elif response.status_code == 429:
+            detail = "邮件服务发送过于频繁或额度不足，请稍后重试或检查 Resend 配额"
+        else:
+            detail = "邮件服务暂时不可用，请稍后重试"
+        raise EmailDeliveryError(detail)
+    try:
+        data = response.json()
+    except ValueError:
+        raise EmailDeliveryError("邮件服务返回了无效响应，请稍后重试") from None
+    if not isinstance(data, dict) or not isinstance(data.get("id"), str) or not data["id"]:
+        raise EmailDeliveryError("邮件服务未确认发送，请稍后重试")
+    logger.info("Resend accepted verification email")
+    return data["id"]
 
 # add verification code api
 class VerifyRequest(BaseModel):
@@ -283,7 +286,14 @@ def recent(uid,limit=12):
 
 @app.get("/api/health")
 def health():
-    return {"status":"ok","openai_configured":bool(OPENAI_API_KEY),"model":OPENAI_MODEL if OPENAI_API_KEY else None}
+    return {
+        "status": "ok",
+        "openai_configured": bool(OPENAI_API_KEY),
+        "model": OPENAI_MODEL if OPENAI_API_KEY else None,
+        "email_provider": "resend",
+        "email_configured": bool(RESEND_API_KEY and EMAIL_FROM),
+        "email_test_mode": "onboarding@resend.dev" in EMAIL_FROM.lower(),
+    }
 
 @app.get("/api/config")
 def config():
@@ -322,16 +332,8 @@ def register(req: AuthRequest):
         try:
             send_verification_email(email, code)
         except Exception as exc:
-            # Do not log SMTP responses: they may contain private account details.
             logger.warning("Verification email failed (%s)", type(exc).__name__)
-            if not GMAIL_ADDRESS or not GMAIL_APP_PASSWORD:
-                detail = "服务器未配置发件邮箱：请在 .env 中设置 GMAIL_ADDRESS 和 GMAIL_APP_PASSWORD，然后重启后端"
-            elif isinstance(exc, smtplib.SMTPAuthenticationError):
-                detail = "发件邮箱认证失败：请检查 GMAIL_ADDRESS 和 Gmail 应用密码（不是邮箱登录密码），然后重启后端"
-            elif isinstance(exc, (OSError, smtplib.SMTPServerDisconnected)):
-                detail = "无法连接邮件服务器，请检查后端网络是否能连接 smtp.gmail.com:465，稍后重试"
-            else:
-                detail = "邮件服务器拒绝发送验证码，请检查发件邮箱设置或稍后重试"
+            detail = str(exc) if isinstance(exc, EmailDeliveryError) else "验证码邮件发送失败，请稍后重试"
             raise HTTPException(503, detail) from None
     return {"verification_required": True, "email": email}
 
@@ -538,7 +540,7 @@ def chat(req:ChatRequest,user=Depends(current_user)):
         reply=(response.output_text or "").strip()
         if not reply:raise RuntimeError("empty response")
     except Exception as exc:
-        print(f"OpenAI API error: {type(exc).__name__}: {exc}")
+        logger.warning("OpenAI API failed (%s)", type(exc).__name__)
         raise HTTPException(502,"OpenAI 服务暂时不可用，请稍后再试")
     save(user["id"],"assistant",reply)
     return {"reply":reply,"sentiment":sentiment(text)}
